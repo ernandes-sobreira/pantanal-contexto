@@ -1,14 +1,11 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Pantanal Contexto</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -16,51 +13,73 @@
       min-height: 100vh;
       font-family: 'Plus Jakarta Sans', 'Segoe UI', Arial, sans-serif;
     }
-    .card {
-      background: white;
-      border-radius: 16px;
-      box-shadow: 0 3px 20px rgba(46,125,50,0.10);
-    }
+    .card { background: white; border-radius: 16px; box-shadow: 0 3px 20px rgba(46,125,50,.10); }
     .input-guess { transition: border-color .2s, box-shadow .2s; }
-    .input-guess:focus { outline: none; border-color: #2e7d32 !important; box-shadow: 0 0 0 3px rgba(46,125,50,0.15) !important; }
+    .input-guess:focus { outline: none; border-color: #2e7d32 !important; box-shadow: 0 0 0 3px rgba(46,125,50,.15) !important; }
     .btn-go { transition: background .2s, transform .1s; }
     .btn-go:hover:not(:disabled) { background: #1b5e20 !important; transform: translateY(-1px); }
-    .btn-go:active:not(:disabled) { transform: translateY(0); }
     .chip { transition: background .15s, transform .1s; cursor: pointer; }
     .chip:hover { transform: translateY(-1px); }
     .guess-row { animation: slideDown .35s cubic-bezier(.34,1.56,.64,1); }
     @keyframes slideDown { from{opacity:0;transform:translateY(-12px)} to{opacity:1;transform:translateY(0)} }
     .bar-fill { transition: width .9s cubic-bezier(.34,1.56,.64,1); }
-    .pulse { animation: pulse 1.2s ease infinite; }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.45} }
+    .pulse { animation: pulse 1.2s ease infinite; display:inline-block; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
     .celebrate { animation: pop .6s cubic-bezier(.34,1.56,.64,1); }
     @keyframes pop { 0%{transform:scale(.85)} 70%{transform:scale(1.05)} 100%{transform:scale(1)} }
     .glow { box-shadow: 0 0 0 3px rgba(0,200,83,.35), 0 3px 20px rgba(46,125,50,.18) !important; border-color: #43a047 !important; }
-    .header-btn:hover { opacity: .85; }
     .ripple { animation: ripple 3s ease-in-out infinite; }
     @keyframes ripple { 0%,100%{transform:scaleX(1)} 50%{transform:scaleX(1.04)} }
     .bird-float { animation: birdFloat 4s ease-in-out infinite; }
     @keyframes birdFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }
-    /* Overlay */
-    .overlay {
-      position: fixed; inset: 0;
-      background: rgba(27,94,32,0.82);
-      backdrop-filter: blur(4px);
-      display: flex; align-items: center; justify-content: center;
-      z-index: 999; padding: 20px;
+
+    /* Loading screen */
+    #loading-screen {
+      position: fixed; inset: 0; z-index: 999;
+      background: linear-gradient(160deg, #1b5e20, #2e7d32 60%, #1a5276);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 30px; text-align: center;
+      transition: opacity .6s;
     }
-    .overlay-card {
-      background: white; border-radius: 20px;
-      padding: 32px 28px; max-width: 420px; width: 100%;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    #loading-screen.hidden { opacity: 0; pointer-events: none; }
+    .progress-bar-bg {
+      width: 260px; height: 8px;
+      background: rgba(255,255,255,.2);
+      border-radius: 4px; overflow: hidden;
+      margin: 16px auto 10px;
+    }
+    .progress-bar-fill {
+      height: 100%; background: #f9a825;
+      border-radius: 4px;
+      transition: width .4s ease;
     }
   </style>
 </head>
 <body>
-<div id="root"></div>
 
-<script type="text/babel">
-const { useState, useRef, useCallback, useEffect } = React;
+<!-- LOADING SCREEN -->
+<div id="loading-screen">
+  <div style="font-size:52px; margin-bottom:16px">🌿</div>
+  <h1 style="font-family:'Fraunces',Georgia,serif; font-weight:900; font-size:28px; color:#f9a825; letter-spacing:1.5px; text-shadow:0 2px 10px rgba(0,0,0,.35)">
+    PANTANAL CONTEXTO
+  </h1>
+  <p style="color:#a5d6a7; font-size:13px; margin-top:6px">Jogo educativo sobre o Pantanal</p>
+
+  <div class="progress-bar-bg">
+    <div class="progress-bar-fill" id="prog" style="width:0%"></div>
+  </div>
+  <p id="load-msg" style="color:#c8e6c9; font-size:13px">Carregando modelo de IA...</p>
+  <p style="color:rgba(255,255,255,.4); font-size:11px; margin-top:20px; max-width:280px; line-height:1.6">
+    Na primeira visita o modelo (~80MB) é baixado e armazenado no seu navegador. Nas próximas vezes é instantâneo.
+  </p>
+</div>
+
+<!-- GAME ROOT -->
+<div id="root" style="display:none"></div>
+
+<script type="module">
+import { pipeline, cos_sim } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js';
 
 /* ─── WORD BANK ─────────────────────────────────────────── */
 const WORD_BANK = [
@@ -118,498 +137,411 @@ const WORD_BANK = [
 const norm = s => s.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
 
 const rankColor = r => {
-  if (!r && r!==0) return "#cfd8dc";
-  if (r===1)    return "#00c853";
-  if (r<=10)    return "#1b5e20";
-  if (r<=50)    return "#2e7d32";
-  if (r<=100)   return "#388e3c";
-  if (r<=200)   return "#66bb6a";
-  if (r<=350)   return "#aed581";
-  if (r<=500)   return "#fdd835";
-  if (r<=700)   return "#ffa000";
-  if (r<=1000)  return "#f4511e";
-  if (r<=1500)  return "#c62828";
+  if(!r&&r!==0) return "#cfd8dc";
+  if(r===1)    return "#00c853";
+  if(r<=10)    return "#1b5e20";
+  if(r<=50)    return "#2e7d32";
+  if(r<=100)   return "#388e3c";
+  if(r<=200)   return "#66bb6a";
+  if(r<=350)   return "#aed581";
+  if(r<=500)   return "#fdd835";
+  if(r<=700)   return "#ffa000";
+  if(r<=1000)  return "#f4511e";
+  if(r<=1500)  return "#c62828";
   return "#78909c";
 };
+
 const heatLabel = r => {
-  if (!r && r!==0) return "avaliando...";
-  if (r===1)  return "🎯 ACERTOU!";
-  if (r<=10)  return "🔥 Fervendo!";
-  if (r<=50)  return "♨️ Muito quente";
-  if (r<=100) return "🌡️ Quente";
-  if (r<=200) return "☀️ Morno";
-  if (r<=400) return "🌤️ Tepido";
-  if (r<=700) return "💧 Frio";
-  if (r<=1200)return "❄️ Gelado";
+  if(!r&&r!==0) return "avaliando...";
+  if(r===1)   return "🎯 ACERTOU!";
+  if(r<=10)   return "🔥 Fervendo!";
+  if(r<=50)   return "♨️ Muito quente";
+  if(r<=100)  return "🌡️ Quente";
+  if(r<=200)  return "☀️ Morno";
+  if(r<=400)  return "🌤️ Tepido";
+  if(r<=700)  return "💧 Frio";
+  if(r<=1200) return "❄️ Gelado";
   return "🌑 Distante";
 };
+
 const barW = r => {
-  if (!r) return 5;
-  if (r===1) return 100;
+  if(!r) return 5;
+  if(r===1) return 100;
   return Math.max(4, Math.round((1 - Math.log(r)/Math.log(2001))*96+4));
 };
 
-/* ─── API ────────────────────────────────────────────────── */
-async function getRank(secret, guess, apiKey) {
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method:"POST",
-    headers:{ "Content-Type":"application/json", "x-api-key": apiKey, "anthropic-version":"2023-06-01" },
-    body: JSON.stringify({
-      model:"claude-sonnet-4-20250514",
-      max_tokens:80,
-      system:`Você é avaliador de similaridade para o jogo educativo "Pantanal Contexto".
-Palavra secreta: "${secret}"
-Palavra do jogador: "${guess}"
-Avalie a proximidade semântica no contexto do ecossistema Pantanal (fauna, flora, hidrologia, cultura).
-Retorne SOMENTE JSON: {"rank":<inteiro 1-2000>}
-1=idêntica; 2-20=sinônimo/mesmo organismo; 21-100=mesma família ecológica; 101-300=mesmo bioma; 301-700=relacionada ao Pantanal; 701-1500=ligação fraca; 1501-2000=sem relação.
-Retorne APENAS o JSON.`,
-      messages:[{role:"user",content:"rank"}]
-    })
-  });
-  const data = await res.json();
-  if (data.error) throw new Error(data.error.message);
-  const txt = data.content.filter(b=>b.type==="text").map(b=>b.text).join("").replace(/```[^\n]*\n?|```/g,"").trim();
-  const {rank} = JSON.parse(txt);
-  return Math.min(2000, Math.max(1, Math.round(rank)));
+/* cosine similarity → rank 1-2000 */
+function simToRank(sim) {
+  // sim: -1..1, clamp to 0..1
+  const s = Math.max(0, Math.min(1, (sim + 1) / 2));
+  if(s >= 0.999) return 1;
+  // exponential mapping: high similarity → low rank
+  const rank = Math.round(2000 * Math.pow(1 - s, 1.6));
+  return Math.max(1, Math.min(2000, rank));
 }
 
-/* ─── PANTANAL SVG ILLUSTRATION ─────────────────────────── */
+/* ─── MODEL SETUP ───────────────────────────────────────── */
+let extractor = null;
+const embedCache = {};
+
+async function getEmbedding(text) {
+  if(embedCache[text]) return embedCache[text];
+  const out = await extractor(text, { pooling:'mean', normalize:true });
+  embedCache[text] = Array.from(out.data);
+  return embedCache[text];
+}
+
+async function getSimilarityRank(secretWord, guessedWord) {
+  const [eSecret, eGuess] = await Promise.all([
+    getEmbedding(secretWord),
+    getEmbedding(guessedWord)
+  ]);
+  const sim = cos_sim(eSecret, eGuess);
+  return simToRank(sim);
+}
+
+/* ─── PANTANAL SVG ──────────────────────────────────────── */
 function PantanalScene() {
-  return (
-    <svg viewBox="0 0 360 170" xmlns="http://www.w3.org/2000/svg"
-      style={{width:"100%", maxWidth:"360px", height:"auto", display:"block", margin:"0 auto"}}>
-      <defs>
-        <linearGradient id="gSky" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#fff8e1"/>
-          <stop offset="100%" stopColor="#ffe0b2"/>
-        </linearGradient>
-        <linearGradient id="gWater" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#80deea"/>
-          <stop offset="100%" stopColor="#00acc1"/>
-        </linearGradient>
-        <linearGradient id="gSun" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
-          <stop offset="0%" stopColor="#fff9c4"/>
-          <stop offset="100%" stopColor="#ffcc02" stopOpacity="0"/>
-        </linearGradient>
-        <filter id="blur1"><feGaussianBlur stdDeviation="1.5"/></filter>
-        <filter id="blur2"><feGaussianBlur stdDeviation="2.5"/></filter>
-      </defs>
-
-      {/* Sky */}
-      <rect width="360" height="105" fill="url(#gSky)"/>
-
-      {/* Sun glow */}
-      <circle cx="180" cy="30" r="28" fill="#fff9c4" opacity="0.55"/>
-      <circle cx="180" cy="30" r="18" fill="#ffe57f" opacity="0.7"/>
-      <circle cx="180" cy="30" r="11" fill="#ffd740" opacity="0.9"/>
-
-      {/* Distant vegetation horizon */}
-      <path d="M0,82 Q30,72 60,76 Q100,66 140,74 Q180,68 220,75 Q260,67 300,74 Q330,70 360,76 L360,105 L0,105 Z"
-        fill="#c8e6c9" opacity="0.9"/>
-      <path d="M0,88 Q50,80 90,84 Q130,78 170,83 Q210,77 250,83 Q290,79 330,84 L360,84 L360,105 L0,105 Z"
-        fill="#a5d6a7" opacity="0.7"/>
-
-      {/* Water surface */}
-      <rect y="102" width="360" height="68" fill="url(#gWater)"/>
-
-      {/* Water reflection shimmer */}
-      <line x1="20"  y1="112" x2="85"  y2="112" stroke="rgba(255,255,255,0.45)" strokeWidth="1.5" className="ripple"/>
-      <line x1="105" y1="118" x2="155" y2="118" stroke="rgba(255,255,255,0.3)"  strokeWidth="1"  />
-      <line x1="190" y1="113" x2="270" y2="113" stroke="rgba(255,255,255,0.45)" strokeWidth="1.5" className="ripple"/>
-      <line x1="290" y1="122" x2="340" y2="122" stroke="rgba(255,255,255,0.25)" strokeWidth="1"  />
-      <line x1="30"  y1="130" x2="80"  y2="130" stroke="rgba(255,255,255,0.2)"  strokeWidth="1"  />
-      <line x1="160" y1="138" x2="210" y2="138" stroke="rgba(255,255,255,0.3)"  strokeWidth="1"  />
-      <line x1="240" y1="148" x2="290" y2="148" stroke="rgba(255,255,255,0.2)"  strokeWidth="1"  />
-
-      {/* === CARANDÁ PALMS — LEFT === */}
-      {/* Palm L1 (tall) */}
-      <line x1="42" y1="103" x2="46" y2="16" stroke="#33691e" strokeWidth="3.5"/>
-      <ellipse cx="46" cy="17" rx="13" ry="5.5" fill="#1b5e20" transform="rotate(-22,46,17)"/>
-      <ellipse cx="46" cy="17" rx="13" ry="5"   fill="#2e7d32" transform="rotate(10,46,17)"/>
-      <ellipse cx="46" cy="17" rx="11" ry="5"   fill="#33691e" transform="rotate(42,46,17)"/>
-      <ellipse cx="46" cy="17" rx="12" ry="5"   fill="#1b5e20" transform="rotate(-52,46,17)"/>
-      {/* Palm L2 */}
-      <line x1="68" y1="103" x2="70" y2="35" stroke="#2e7d32" strokeWidth="3"/>
-      <ellipse cx="70" cy="36" rx="11" ry="5"   fill="#33691e" transform="rotate(-18,70,36)"/>
-      <ellipse cx="70" cy="36" rx="11" ry="4.5" fill="#558b2f" transform="rotate(18,70,36)"/>
-      <ellipse cx="70" cy="36" rx="9"  ry="4.5" fill="#33691e" transform="rotate(50,70,36)"/>
-      {/* Palm L3 (short, background) */}
-      <line x1="22" y1="103" x2="24" y2="52" stroke="#388e3c" strokeWidth="2" opacity="0.6"/>
-      <ellipse cx="24" cy="53" rx="8" ry="4" fill="#2e7d32" transform="rotate(-10,24,53)" opacity="0.6"/>
-      <ellipse cx="24" cy="53" rx="7" ry="3.5" fill="#388e3c" transform="rotate(25,24,53)" opacity="0.6"/>
-
-      {/* === CARANDÁ PALMS — RIGHT === */}
-      {/* Palm R1 (tall) */}
-      <line x1="318" y1="103" x2="315" y2="18" stroke="#33691e" strokeWidth="3.5"/>
-      <ellipse cx="315" cy="19" rx="13" ry="5.5" fill="#1b5e20" transform="rotate(20,315,19)"/>
-      <ellipse cx="315" cy="19" rx="12" ry="5"   fill="#2e7d32" transform="rotate(-14,315,19)"/>
-      <ellipse cx="315" cy="19" rx="11" ry="5"   fill="#33691e" transform="rotate(-46,315,19)"/>
-      <ellipse cx="315" cy="19" rx="12" ry="5"   fill="#1b5e20" transform="rotate(50,315,19)"/>
-      {/* Palm R2 */}
-      <line x1="296" y1="103" x2="294" y2="38" stroke="#2e7d32" strokeWidth="3"/>
-      <ellipse cx="294" cy="39" rx="11" ry="5"   fill="#558b2f" transform="rotate(-12,294,39)"/>
-      <ellipse cx="294" cy="39" rx="10" ry="4.5" fill="#33691e" transform="rotate(22,294,39)"/>
-      <ellipse cx="294" cy="39" rx="9"  ry="4.5" fill="#558b2f" transform="rotate(52,294,39)"/>
-      {/* Palm R3 (short, background) */}
-      <line x1="338" y1="103" x2="336" y2="55" stroke="#388e3c" strokeWidth="2" opacity="0.6"/>
-      <ellipse cx="336" cy="56" rx="8" ry="4" fill="#2e7d32" transform="rotate(12,336,56)" opacity="0.6"/>
-      <ellipse cx="336" cy="56" rx="7" ry="3.5" fill="#388e3c" transform="rotate(-20,336,56)" opacity="0.6"/>
-
-      {/* === REED GRASS — left cluster === */}
-      <line x1="108" y1="103" x2="105" y2="72" stroke="#558b2f" strokeWidth="1.8"/>
-      <line x1="113" y1="103" x2="116" y2="68" stroke="#558b2f" strokeWidth="1.8"/>
-      <line x1="118" y1="103" x2="116" y2="74" stroke="#388e3c" strokeWidth="1.6"/>
-      <line x1="122" y1="103" x2="124" y2="70" stroke="#558b2f" strokeWidth="1.5"/>
-      <ellipse cx="105" cy="70" rx="3"   ry="9"   fill="#5d4037"/>
-      <ellipse cx="116" cy="66" rx="3.2" ry="10"  fill="#6d4c41"/>
-      <ellipse cx="116" cy="72" rx="2.8" ry="8.5" fill="#5d4037"/>
-      <ellipse cx="124" cy="68" rx="2.5" ry="8"   fill="#4e342e"/>
-
-      {/* === REED GRASS — right cluster === */}
-      <line x1="238" y1="103" x2="236" y2="74" stroke="#558b2f" strokeWidth="1.8"/>
-      <line x1="243" y1="103" x2="246" y2="70" stroke="#558b2f" strokeWidth="1.8"/>
-      <line x1="248" y1="103" x2="246" y2="76" stroke="#388e3c" strokeWidth="1.6"/>
-      <ellipse cx="236" cy="72" rx="2.8" ry="8.5" fill="#5d4037"/>
-      <ellipse cx="246" cy="68" rx="3"   ry="9"   fill="#6d4c41"/>
-      <ellipse cx="246" cy="74" rx="2.5" ry="7.5" fill="#5d4037"/>
-
-      {/* === VITÓRIA-RÉGIA on water === */}
-      {/* Leaf 1 (large) */}
-      <circle cx="168" cy="122" r="19" fill="#1b5e20" opacity="0.85"/>
-      <circle cx="168" cy="122" r="15" fill="#2e7d32" opacity="0.7"/>
-      <circle cx="168" cy="122" r="8"  fill="#4caf50" opacity="0.5"/>
-      <circle cx="168" cy="122" r="3"  fill="#a5d6a7" opacity="0.6"/>
-      {/* Leaf veins */}
-      <line x1="168" y1="103" x2="168" y2="141" stroke="#1b5e20" strokeWidth="0.8" opacity="0.4"/>
-      <line x1="149" y1="122" x2="187" y2="122" stroke="#1b5e20" strokeWidth="0.8" opacity="0.4"/>
-      {/* Leaf 2 (medium) */}
-      <circle cx="200" cy="138" r="13" fill="#2e7d32" opacity="0.75"/>
-      <circle cx="200" cy="138" r="10" fill="#388e3c" opacity="0.55"/>
-      <circle cx="200" cy="138" r="5"  fill="#66bb6a" opacity="0.45"/>
-      {/* Leaf 3 (small) */}
-      <circle cx="143" cy="140" r="10" fill="#33691e" opacity="0.7"/>
-      <circle cx="143" cy="140" r="7"  fill="#43a047" opacity="0.5"/>
-      {/* Flower bud */}
-      <circle cx="168" cy="107" r="3.5" fill="#f48fb1" opacity="0.9"/>
-      <circle cx="168" cy="107" r="2"   fill="#f06292" opacity="1"/>
-
-      {/* === JABIRU BIRD (in flight, silhouette) === */}
-      <g className="bird-float" style={{transformOrigin:"180px 52px"}}>
-        <ellipse cx="180" cy="55" rx="9" ry="4" fill="#263238"/>
-        <path d="M171,53 Q160,44 155,48 Q162,54 171,55" fill="#37474f"/>
-        <path d="M189,53 Q200,44 205,48 Q198,54 189,55" fill="#37474f"/>
-        <line x1="185" y1="53" x2="191" y2="43" stroke="#263238" strokeWidth="2.5"/>
-        <circle cx="192" cy="41" r="3.5" fill="#263238"/>
-        <ellipse cx="188" cy="47" rx="2.2" ry="3.5" fill="#b71c1c" opacity="0.85"/>
-        <line x1="176" y1="59" x2="174" y2="66" stroke="#263238" strokeWidth="1.5"/>
-        <line x1="183" y1="59" x2="183" y2="66" stroke="#263238" strokeWidth="1.5"/>
-      </g>
-
-      {/* === CAPIVARA at waterline === */}
-      <g transform="translate(255,99)" opacity="0.88">
-        <ellipse cx="0" cy="0" rx="16" ry="9" fill="#6d4c41"/>
-        <ellipse cx="14" cy="-4" rx="7"  ry="6" fill="#6d4c41"/>
-        <circle  cx="19" cy="-6" r="4"          fill="#5d4037"/>
-        <rect x="-12" y="7" width="4" height="8" rx="1.5" fill="#4e342e"/>
-        <rect x="-5"  y="7" width="4" height="8" rx="1.5" fill="#4e342e"/>
-        <rect x="3"   y="7" width="4" height="8" rx="1.5" fill="#4e342e"/>
-        <rect x="10"  y="7" width="4" height="8" rx="1.5" fill="#4e342e"/>
-        {/* Water ripples around it */}
-        <ellipse cx="0" cy="6" rx="22" ry="3" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="1"/>
-      </g>
-
-      {/* Palm reflections in water (blurred) */}
-      <line x1="46" y1="105" x2="40" y2="155" stroke="rgba(33,101,25,0.18)" strokeWidth="5" filter="url(#blur1)"/>
-      <line x1="315" y1="105" x2="310" y2="155" stroke="rgba(33,101,25,0.18)" strokeWidth="5" filter="url(#blur1)"/>
-    </svg>
-  );
+  return `
+  <svg viewBox="0 0 360 170" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:360px;height:auto;display:block;margin:0 auto">
+    <defs>
+      <linearGradient id="gSky" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#fff8e1"/>
+        <stop offset="100%" stop-color="#ffe0b2"/>
+      </linearGradient>
+      <linearGradient id="gWater" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#80deea"/>
+        <stop offset="100%" stop-color="#00acc1"/>
+      </linearGradient>
+    </defs>
+    <rect width="360" height="105" fill="url(#gSky)"/>
+    <circle cx="180" cy="30" r="28" fill="#fff9c4" opacity="0.55"/>
+    <circle cx="180" cy="30" r="18" fill="#ffe57f" opacity="0.7"/>
+    <circle cx="180" cy="30" r="11" fill="#ffd740" opacity="0.9"/>
+    <path d="M0,82 Q30,72 60,76 Q100,66 140,74 Q180,68 220,75 Q260,67 300,74 Q330,70 360,76 L360,105 L0,105 Z" fill="#c8e6c9" opacity="0.9"/>
+    <path d="M0,88 Q50,80 90,84 Q130,78 170,83 Q210,77 250,83 Q290,79 330,84 L360,84 L360,105 L0,105 Z" fill="#a5d6a7" opacity="0.7"/>
+    <rect y="102" width="360" height="68" fill="url(#gWater)"/>
+    <line x1="20" y1="112" x2="85" y2="112" stroke="rgba(255,255,255,0.45)" stroke-width="1.5"/>
+    <line x1="190" y1="113" x2="270" y2="113" stroke="rgba(255,255,255,0.45)" stroke-width="1.5"/>
+    <line x1="160" y1="138" x2="210" y2="138" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+    <!-- Palms Left -->
+    <line x1="42" y1="103" x2="46" y2="16" stroke="#33691e" stroke-width="3.5"/>
+    <ellipse cx="46" cy="17" rx="13" ry="5.5" fill="#1b5e20" transform="rotate(-22,46,17)"/>
+    <ellipse cx="46" cy="17" rx="13" ry="5" fill="#2e7d32" transform="rotate(10,46,17)"/>
+    <ellipse cx="46" cy="17" rx="11" ry="5" fill="#33691e" transform="rotate(42,46,17)"/>
+    <ellipse cx="46" cy="17" rx="12" ry="5" fill="#1b5e20" transform="rotate(-52,46,17)"/>
+    <line x1="68" y1="103" x2="70" y2="35" stroke="#2e7d32" stroke-width="3"/>
+    <ellipse cx="70" cy="36" rx="11" ry="5" fill="#33691e" transform="rotate(-18,70,36)"/>
+    <ellipse cx="70" cy="36" rx="11" ry="4.5" fill="#558b2f" transform="rotate(18,70,36)"/>
+    <line x1="22" y1="103" x2="24" y2="52" stroke="#388e3c" stroke-width="2" opacity="0.6"/>
+    <ellipse cx="24" cy="53" rx="8" ry="4" fill="#2e7d32" transform="rotate(-10,24,53)" opacity="0.6"/>
+    <!-- Palms Right -->
+    <line x1="318" y1="103" x2="315" y2="18" stroke="#33691e" stroke-width="3.5"/>
+    <ellipse cx="315" cy="19" rx="13" ry="5.5" fill="#1b5e20" transform="rotate(20,315,19)"/>
+    <ellipse cx="315" cy="19" rx="12" ry="5" fill="#2e7d32" transform="rotate(-14,315,19)"/>
+    <ellipse cx="315" cy="19" rx="11" ry="5" fill="#33691e" transform="rotate(-46,315,19)"/>
+    <line x1="296" y1="103" x2="294" y2="38" stroke="#2e7d32" stroke-width="3"/>
+    <ellipse cx="294" cy="39" rx="11" ry="5" fill="#558b2f" transform="rotate(-12,294,39)"/>
+    <ellipse cx="294" cy="39" rx="10" ry="4.5" fill="#33691e" transform="rotate(22,294,39)"/>
+    <!-- Reeds left -->
+    <line x1="108" y1="103" x2="105" y2="72" stroke="#558b2f" stroke-width="1.8"/>
+    <line x1="113" y1="103" x2="116" y2="68" stroke="#558b2f" stroke-width="1.8"/>
+    <line x1="118" y1="103" x2="116" y2="74" stroke="#388e3c" stroke-width="1.6"/>
+    <ellipse cx="105" cy="70" rx="3" ry="9" fill="#5d4037"/>
+    <ellipse cx="116" cy="66" rx="3.2" ry="10" fill="#6d4c41"/>
+    <ellipse cx="116" cy="72" rx="2.8" ry="8.5" fill="#5d4037"/>
+    <!-- Reeds right -->
+    <line x1="238" y1="103" x2="236" y2="74" stroke="#558b2f" stroke-width="1.8"/>
+    <line x1="243" y1="103" x2="246" y2="70" stroke="#558b2f" stroke-width="1.8"/>
+    <ellipse cx="236" cy="72" rx="2.8" ry="8.5" fill="#5d4037"/>
+    <ellipse cx="246" cy="68" rx="3" ry="9" fill="#6d4c41"/>
+    <!-- Vitória-régia -->
+    <circle cx="168" cy="122" r="19" fill="#1b5e20" opacity="0.85"/>
+    <circle cx="168" cy="122" r="15" fill="#2e7d32" opacity="0.7"/>
+    <circle cx="168" cy="122" r="8" fill="#4caf50" opacity="0.5"/>
+    <circle cx="168" cy="122" r="3" fill="#a5d6a7" opacity="0.6"/>
+    <line x1="168" y1="103" x2="168" y2="141" stroke="#1b5e20" stroke-width="0.8" opacity="0.4"/>
+    <line x1="149" y1="122" x2="187" y2="122" stroke="#1b5e20" stroke-width="0.8" opacity="0.4"/>
+    <circle cx="168" cy="107" r="3.5" fill="#f48fb1" opacity="0.9"/>
+    <circle cx="168" cy="107" r="2" fill="#f06292"/>
+    <circle cx="200" cy="138" r="13" fill="#2e7d32" opacity="0.75"/>
+    <circle cx="200" cy="138" r="10" fill="#388e3c" opacity="0.55"/>
+    <circle cx="143" cy="140" r="10" fill="#33691e" opacity="0.7"/>
+    <!-- Jabiru -->
+    <g class="bird-float" style="transform-origin:180px 52px">
+      <ellipse cx="180" cy="55" rx="9" ry="4" fill="#263238"/>
+      <path d="M171,53 Q160,44 155,48 Q162,54 171,55" fill="#37474f"/>
+      <path d="M189,53 Q200,44 205,48 Q198,54 189,55" fill="#37474f"/>
+      <line x1="185" y1="53" x2="191" y2="43" stroke="#263238" stroke-width="2.5"/>
+      <circle cx="192" cy="41" r="3.5" fill="#263238"/>
+      <ellipse cx="188" cy="47" rx="2.2" ry="3.5" fill="#b71c1c" opacity="0.85"/>
+      <line x1="176" y1="59" x2="174" y2="66" stroke="#263238" stroke-width="1.5"/>
+      <line x1="183" y1="59" x2="183" y2="66" stroke="#263238" stroke-width="1.5"/>
+    </g>
+    <!-- Capivara -->
+    <g transform="translate(255,99)" opacity="0.88">
+      <ellipse cx="0" cy="0" rx="16" ry="9" fill="#6d4c41"/>
+      <ellipse cx="14" cy="-4" rx="7" ry="6" fill="#6d4c41"/>
+      <circle cx="19" cy="-6" r="4" fill="#5d4037"/>
+      <rect x="-12" y="7" width="4" height="8" rx="1.5" fill="#4e342e"/>
+      <rect x="-5" y="7" width="4" height="8" rx="1.5" fill="#4e342e"/>
+      <rect x="3" y="7" width="4" height="8" rx="1.5" fill="#4e342e"/>
+      <rect x="10" y="7" width="4" height="8" rx="1.5" fill="#4e342e"/>
+      <ellipse cx="0" cy="6" rx="22" ry="3" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="1"/>
+    </g>
+    <line x1="46" y1="105" x2="40" y2="155" stroke="rgba(33,101,25,0.18)" stroke-width="5"/>
+    <line x1="315" y1="105" x2="310" y2="155" stroke="rgba(33,101,25,0.18)" stroke-width="5"/>
+  </svg>`;
 }
 
-/* ─── KEY SETUP OVERLAY ──────────────────────────────────── */
-function ApiKeyOverlay({ onSet }) {
-  const [val, setVal] = useState("");
-  const [err, setErr] = useState("");
-  return (
-    <div className="overlay">
-      <div className="overlay-card">
-        <div style={{textAlign:"center",marginBottom:"20px"}}>
-          <PantanalScene/>
-          <h2 style={{fontFamily:"'Fraunces',Georgia,serif",color:"#1b5e20",fontSize:"22px",marginTop:"14px"}}>
-            Pantanal Contexto
-          </h2>
-          <p style={{color:"#546e7a",fontSize:"13px",marginTop:"6px"}}>
-            Jogo educativo alimentado por IA
-          </p>
-        </div>
-        <p style={{fontSize:"13px",color:"#37474f",lineHeight:1.7,marginBottom:"16px"}}>
-          Para jogar, informe sua chave de API Anthropic. Ela fica salva apenas na sua sessão do navegador e nunca é enviada a nenhum servidor além da Anthropic.
-        </p>
-        <input
-          type="password"
-          placeholder="sk-ant-..."
-          value={val}
-          onChange={e=>{setVal(e.target.value);setErr("");}}
-          onKeyDown={e=>e.key==="Enter"&&confirm()}
-          style={{width:"100%",padding:"11px 14px",fontSize:"14px",border:"2px solid #c8e6c9",borderRadius:"10px",marginBottom:"8px",fontFamily:"monospace"}}
-        />
-        {err && <p style={{color:"#e53935",fontSize:"12px",marginBottom:"8px"}}>⚠️ {err}</p>}
-        <button
-          onClick={()=>{
-            if(!val.trim().startsWith("sk-ant-")){setErr("Chave inválida. Deve começar com sk-ant-");return;}
-            sessionStorage.setItem("pc_key",val.trim());
-            onSet(val.trim());
-          }}
-          style={{width:"100%",background:"#2e7d32",color:"white",border:"none",borderRadius:"10px",padding:"12px",fontSize:"15px",fontWeight:700,cursor:"pointer"}}
-        >
-          Começar a jogar 🌿
-        </button>
-        <p style={{fontSize:"11px",color:"#90a4ae",marginTop:"12px",textAlign:"center"}}>
-          Obtenha sua chave em{" "}
-          <a href="https://console.anthropic.com" target="_blank" rel="noreferrer" style={{color:"#2e7d32"}}>console.anthropic.com</a>
-        </p>
+/* ─── GAME STATE ────────────────────────────────────────── */
+let swObj = WORD_BANK[Math.floor(Math.random() * WORD_BANK.length)];
+let secretEmbed = null;
+let guesses = [];
+let won = false;
+let loading = false;
+let hintUsed = false;
+let revCat = false;
+
+/* ─── RENDER ────────────────────────────────────────────── */
+function render() {
+  const root = document.getElementById('root');
+
+  const boxes = swObj.word.split('').map(ch => {
+    const sep = ch === '-' || ch === ' ';
+    return sep
+      ? `<div style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:42px;font-size:20px;color:#b0bec5;font-weight:700">${ch==='-'?'–':''}</div>`
+      : `<div style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:42px;background:#e8f5e9;border:2px solid #a5d6a7;border-radius:8px;margin:0 2px;font-size:20px;color:#b0bec5;font-weight:700">?</div>`;
+  }).join('');
+
+  const guessRows = guesses.map((g, i) => {
+    const col = rankColor(g.rank);
+    const isL = !!g.loading;
+    return `
+    <div class="guess-row" style="padding:10px 16px;border-bottom:${i<guesses.length-1?'1px solid #f5f5f5':'none'};display:flex;align-items:center;gap:10px;background:${g.rank===1?'#f1f8e9':'white'}">
+      <div style="width:30px;height:30px;border-radius:50%;background:${isL?'#e0e0e0':col};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:white;flex-shrink:0">
+        ${isL?`<span class="pulse">?</span>`:i+1}
       </div>
-    </div>
-  );
-}
-
-/* ─── MAIN GAME ─────────────────────────────────────────── */
-function App() {
-  const savedKey = sessionStorage.getItem("pc_key") || "";
-  const [apiKey,  setApiKey]  = useState(savedKey);
-  const [swObj,   setSwObj]   = useState(()=>WORD_BANK[Math.floor(Math.random()*WORD_BANK.length)]);
-  const [input,   setInput]   = useState("");
-  const [guesses, setGuesses] = useState([]);
-  const [won,     setWon]     = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error,   setError]   = useState("");
-  const [hintUsed,setHintUsed]= useState(false);
-  const [revCat,  setRevCat]  = useState(false);
-  const inputRef = useRef(null);
-
-  useEffect(()=>{ if(apiKey) setTimeout(()=>inputRef.current?.focus(),100); },[apiKey]);
-
-  const guess = useCallback(async()=>{
-    const raw = input.trim();
-    if(!raw||loading||won) return;
-    const n = norm(raw);
-    if(guesses.some(g=>norm(g.word)===n)){
-      setError("Você já tentou essa palavra!");
-      setTimeout(()=>setError(""),2200);
-      return;
-    }
-    setLoading(true); setInput(""); setError("");
-
-    if(n===norm(swObj.word)){
-      setGuesses(prev=>[{word:raw,rank:1,done:true},...prev].sort((a,b)=>(a.rank??9999)-(b.rank??9999)));
-      setWon(true); setLoading(false); return;
-    }
-
-    const pid = Date.now();
-    setGuesses(prev=>[{word:raw,rank:null,loading:true,pid},...prev]);
-    try{
-      const rank = await getRank(swObj.word, raw, apiKey);
-      setGuesses(prev=>{
-        const f = prev.filter(g=>g.pid!==pid);
-        return [...f,{word:raw,rank,done:true}].sort((a,b)=>(a.rank??9999)-(b.rank??9999));
-      });
-    } catch(e){
-      setGuesses(prev=>prev.filter(g=>g.pid!==pid));
-      setError("Erro de conexão. Verifique sua chave e tente novamente.");
-    } finally {
-      setLoading(false);
-      inputRef.current?.focus();
-    }
-  },[input,loading,won,guesses,swObj,apiKey]);
-
-  const newGame = ()=>{
-    let n; do{ n=WORD_BANK[Math.floor(Math.random()*WORD_BANK.length)]; } while(n.word===swObj.word);
-    setSwObj(n); setGuesses([]); setWon(false); setLoading(false);
-    setInput(""); setError(""); setHintUsed(false); setRevCat(false);
-    setTimeout(()=>inputRef.current?.focus(),100);
-  };
-
-  /* letter boxes */
-  const boxes = swObj.word.split("").map((ch,i)=>{
-    const sep = ch==="-"||ch===" ";
-    return (
-      <div key={i} style={{display:"inline-flex",alignItems:"center",justifyContent:"center",
-        width:sep?"16px":"34px",height:"42px",background:sep?"transparent":"#e8f5e9",
-        border:sep?"none":"2px solid #a5d6a7",borderRadius:sep?0:"8px",margin:"0 2px",
-        fontSize:"20px",color:"#b0bec5",fontWeight:700}}>
-        {sep?(ch==="-"?"–":""):("?")}
+      <div style="flex:0 0 110px;min-width:0;overflow:hidden">
+        <div style="font-size:15px;font-weight:700;color:${g.rank===1?'#1b5e20':'#37474f'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${g.word}</div>
       </div>
-    );
-  });
-
-  if(!apiKey) return <ApiKeyOverlay onSet={k=>{sessionStorage.setItem("pc_key",k);setApiKey(k);}}/>;
-
-  return (
-    <div style={{minHeight:"100vh",background:"linear-gradient(160deg,#e8f5e9 0%,#f1f8e9 60%,#e0f2f1 100%)"}}>
-
-      {/* Header */}
-      <div style={{background:"linear-gradient(135deg,#1b5e20 0%,#2e7d32 55%,#1a5276 100%)",padding:"22px 20px 18px",textAlign:"center"}}>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:"12px"}}>
-          <span style={{fontSize:"32px"}}>🌿</span>
-          <h1 style={{fontFamily:"'Fraunces',Georgia,serif",fontWeight:900,fontSize:"clamp(22px,5vw,34px)",color:"#f9a825",letterSpacing:"1.5px",textShadow:"0 2px 10px rgba(0,0,0,.35)"}}>
-            PANTANAL CONTEXTO
-          </h1>
-          <span style={{fontSize:"32px"}}>🐊</span>
-        </div>
-        <p style={{marginTop:"6px",color:"#a5d6a7",fontSize:"13px",letterSpacing:"0.5px"}}>
-          Descubra a palavra secreta do maior pantanal do mundo
-        </p>
-      </div>
-
-      <div style={{maxWidth:"620px",margin:"0 auto",padding:"20px 14px 48px"}}>
-
-        {/* Secret word card */}
-        <div className={`card ${won?"glow":""}`} style={{padding:"20px",textAlign:"center",marginBottom:"14px",border:`2px solid ${won?"#43a047":"#e8f5e9"}`,background:won?"linear-gradient(135deg,#f1f8e9,#e8f5e9)":"white",transition:"all .4s"}}>
-          <div style={{fontSize:"10px",letterSpacing:"2.5px",color:"#90a4ae",textTransform:"uppercase",marginBottom:"12px",fontWeight:700}}>
-            PALAVRA SECRETA
-          </div>
-          {won
-            ? <div className="celebrate" style={{fontFamily:"'Fraunces',Georgia,serif",fontWeight:900,fontSize:"clamp(24px,6vw,38px)",color:"#2e7d32",letterSpacing:"3px"}}>
-                {swObj.word.toUpperCase()} 🎉
-              </div>
-            : <div style={{display:"flex",justifyContent:"center",flexWrap:"wrap",gap:"2px"}}>{boxes}</div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:4px">
+        <div style="height:9px;background:#f0f0f0;border-radius:5px;overflow:hidden">
+          ${isL
+            ? `<div class="pulse" style="height:100%;width:28%;background:#cfd8dc;border-radius:5px"></div>`
+            : `<div class="bar-fill" style="height:100%;width:${barW(g.rank)}%;background:${col};border-radius:5px"></div>`
           }
-          <div style={{display:"flex",justifyContent:"center",gap:"24px",marginTop:"14px",flexWrap:"wrap"}}>
-            <div style={{textAlign:"center"}}>
-              <div style={{fontSize:"22px",fontWeight:800,color:"#2e7d32",fontFamily:"'Fraunces',Georgia,serif"}}>{guesses.length}</div>
-              <div style={{fontSize:"10px",color:"#90a4ae",letterSpacing:"1px",textTransform:"uppercase"}}>Tentativas</div>
-            </div>
-            {revCat&&<div style={{textAlign:"center"}}>
-              <div style={{fontSize:"14px",fontWeight:700,color:"#f57f17"}}>{swObj.category}</div>
-              <div style={{fontSize:"10px",color:"#90a4ae",letterSpacing:"1px",textTransform:"uppercase"}}>Categoria</div>
-            </div>}
-            {hintUsed&&<div style={{textAlign:"center",maxWidth:"180px"}}>
-              <div style={{fontSize:"12px",fontWeight:600,color:"#7b1fa2",fontStyle:"italic"}}>"{swObj.hint}"</div>
-              <div style={{fontSize:"10px",color:"#90a4ae",letterSpacing:"1px",textTransform:"uppercase"}}>Dica</div>
-            </div>}
-          </div>
         </div>
+        <div style="font-size:11px;color:${isL?'#b0bec5':col};font-weight:600">${isL?'avaliando...':heatLabel(g.rank)}</div>
+      </div>
+      <div style="flex-shrink:0;min-width:44px;text-align:right;font-size:14px;font-weight:800;color:${isL?'#cfd8dc':col}">
+        ${isL?'...':(g.rank===1?'#1':'#'+g.rank)}
+      </div>
+    </div>`;
+  }).join('');
 
-        {/* Win banner */}
-        {won&&(
-          <div className="celebrate" style={{background:"linear-gradient(135deg,#1b5e20,#2e7d32)",borderRadius:"14px",padding:"18px",textAlign:"center",marginBottom:"14px",color:"white"}}>
-            <div style={{fontSize:"30px",marginBottom:"6px"}}>🏆</div>
-            <div style={{fontFamily:"'Fraunces',Georgia,serif",fontSize:"18px",fontWeight:700,marginBottom:"4px"}}>
-              Você descobriu em {guesses.length} tentativa{guesses.length!==1?"s":""}!
-            </div>
-            <div style={{fontSize:"12px",color:"#a5d6a7",marginBottom:"14px"}}>
-              Categoria: {swObj.category} &bull; {swObj.hint}
-            </div>
-            <button onClick={newGame} className="header-btn" style={{background:"#00695c",color:"white",border:"none",borderRadius:"8px",padding:"10px 26px",fontSize:"14px",fontWeight:700,cursor:"pointer"}}>
-              🌿 Novo Jogo
-            </button>
+  root.innerHTML = `
+  <div style="min-height:100vh;background:linear-gradient(160deg,#e8f5e9 0%,#f1f8e9 60%,#e0f2f1 100%)">
+
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,#1b5e20 0%,#2e7d32 55%,#1a5276 100%);padding:22px 20px 18px;text-align:center">
+      <div style="display:flex;align-items:center;justify-content:center;gap:12px">
+        <span style="font-size:32px">🌿</span>
+        <h1 style="font-family:'Fraunces',Georgia,serif;font-weight:900;font-size:clamp(22px,5vw,34px);color:#f9a825;letter-spacing:1.5px;text-shadow:0 2px 10px rgba(0,0,0,.35)">
+          PANTANAL CONTEXTO
+        </h1>
+        <span style="font-size:32px">🐊</span>
+      </div>
+      <p style="margin-top:6px;color:#a5d6a7;font-size:13px;letter-spacing:0.5px">Descubra a palavra secreta do maior pantanal do mundo</p>
+    </div>
+
+    <div style="max-width:620px;margin:0 auto;padding:20px 14px 48px">
+
+      <!-- Secret word -->
+      <div class="card ${won?'glow':''}" style="padding:20px;text-align:center;margin-bottom:14px;border:2px solid ${won?'#43a047':'#e8f5e9'};background:${won?'linear-gradient(135deg,#f1f8e9,#e8f5e9)':'white'};transition:all .4s">
+        <div style="font-size:10px;letter-spacing:2.5px;color:#90a4ae;text-transform:uppercase;margin-bottom:12px;font-weight:700">PALAVRA SECRETA</div>
+        ${won
+          ? `<div class="celebrate" style="font-family:'Fraunces',Georgia,serif;font-weight:900;font-size:clamp(24px,6vw,38px);color:#2e7d32;letter-spacing:3px">${swObj.word.toUpperCase()} 🎉</div>`
+          : `<div style="display:flex;justify-content:center;flex-wrap:wrap;gap:2px">${boxes}</div>`
+        }
+        <div style="display:flex;justify-content:center;gap:24px;margin-top:14px;flex-wrap:wrap">
+          <div style="text-align:center">
+            <div style="font-size:22px;font-weight:800;color:#2e7d32;font-family:'Fraunces',Georgia,serif">${guesses.length}</div>
+            <div style="font-size:10px;color:#90a4ae;letter-spacing:1px;text-transform:uppercase">Tentativas</div>
           </div>
-        )}
-
-        {/* Input */}
-        {!won&&(
-          <div className="card" style={{padding:"16px",marginBottom:"14px"}}>
-            <div style={{display:"flex",gap:"8px",marginBottom:"10px"}}>
-              <input
-                ref={inputRef}
-                value={input}
-                onChange={e=>setInput(e.target.value)}
-                onKeyDown={e=>e.key==="Enter"&&guess()}
-                placeholder="Digite uma palavra do Pantanal..."
-                disabled={loading}
-                className="input-guess"
-                style={{flex:1,padding:"12px 16px",fontSize:"15px",border:"2px solid #e0e0e0",borderRadius:"10px",fontFamily:"inherit",background:loading?"#fafafa":"white",color:"#263238"}}
-              />
-              <button onClick={guess} disabled={!input.trim()||loading} className="btn-go"
-                style={{background:(!input.trim()||loading)?"#cfd8dc":"#2e7d32",color:"white",border:"none",borderRadius:"10px",padding:"12px 18px",fontSize:"18px",cursor:(!input.trim()||loading)?"not-allowed":"pointer",fontWeight:700,minWidth:"52px"}}>
-                {loading?<span className="pulse">⏳</span>:"→"}
-              </button>
-            </div>
-            {error&&<div style={{color:"#e53935",fontSize:"12px",padding:"4px 6px",marginBottom:"8px"}}>⚠️ {error}</div>}
-            <div style={{display:"flex",gap:"7px",flexWrap:"wrap"}}>
-              {!revCat&&<button onClick={()=>setRevCat(true)} className="chip" style={{background:"#fff8e1",color:"#f57f17",border:"1px solid #ffe082",borderRadius:"8px",padding:"6px 12px",fontSize:"12px",fontWeight:600}}>🏷️ Ver Categoria</button>}
-              {!hintUsed&&<button onClick={()=>setHintUsed(true)} className="chip" style={{background:"#f3e5f5",color:"#7b1fa2",border:"1px solid #ce93d8",borderRadius:"8px",padding:"6px 12px",fontSize:"12px",fontWeight:600}}>💡 Ver Dica</button>}
-              <button onClick={newGame} className="chip" style={{background:"#e0f2f1",color:"#00695c",border:"1px solid #80cbc4",borderRadius:"8px",padding:"6px 12px",fontSize:"12px",fontWeight:600}}>🔄 Novo Jogo</button>
-              <button onClick={()=>{sessionStorage.removeItem("pc_key");setApiKey("");}} className="chip" style={{background:"#fce4ec",color:"#c62828",border:"1px solid #f48fb1",borderRadius:"8px",padding:"6px 12px",fontSize:"12px",fontWeight:600}}>🔑 Chave</button>
-            </div>
-          </div>
-        )}
-
-        {/* Guesses */}
-        {guesses.length>0&&(
-          <div className="card" style={{overflow:"hidden"}}>
-            <div style={{padding:"11px 16px",borderBottom:"1px solid #f0f0f0",display:"flex",justifyContent:"space-between",alignItems:"center",background:"#fafafa"}}>
-              <span style={{fontSize:"11px",fontWeight:700,color:"#546e7a",letterSpacing:"1.5px",textTransform:"uppercase"}}>Suas Tentativas</span>
-              <span style={{fontSize:"12px",color:"#90a4ae",fontWeight:600}}>{guesses.length} palavra{guesses.length!==1?"s":""}</span>
-            </div>
-            {guesses.map((g,i)=>{
-              const col = rankColor(g.rank);
-              const isL = !!g.loading;
-              return(
-                <div key={g.pid||g.word+i} className="guess-row"
-                  style={{padding:"10px 16px",borderBottom:i<guesses.length-1?"1px solid #f5f5f5":"none",display:"flex",alignItems:"center",gap:"10px",background:g.rank===1?"#f1f8e9":"white"}}>
-                  <div style={{width:"30px",height:"30px",borderRadius:"50%",background:isL?"#e0e0e0":col,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"12px",fontWeight:800,color:"white",flexShrink:0}}>
-                    {isL?<span className="pulse">?</span>:i+1}
-                  </div>
-                  <div style={{flex:"0 0 110px",minWidth:0,overflow:"hidden"}}>
-                    <div style={{fontSize:"15px",fontWeight:700,color:g.rank===1?"#1b5e20":"#37474f",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                      {g.word}
-                    </div>
-                  </div>
-                  <div style={{flex:1,display:"flex",flexDirection:"column",gap:"4px"}}>
-                    <div style={{height:"9px",background:"#f0f0f0",borderRadius:"5px",overflow:"hidden"}}>
-                      {isL
-                        ?<div className="pulse" style={{height:"100%",width:"28%",background:"#cfd8dc",borderRadius:"5px"}}/>
-                        :<div className="bar-fill" style={{height:"100%",width:`${barW(g.rank)}%`,background:col,borderRadius:"5px"}}/>
-                      }
-                    </div>
-                    <div style={{fontSize:"11px",color:isL?"#b0bec5":col,fontWeight:600}}>
-                      {isL?"avaliando...":heatLabel(g.rank)}
-                    </div>
-                  </div>
-                  <div style={{flexShrink:0,minWidth:"44px",textAlign:"right",fontSize:"14px",fontWeight:800,color:isL?"#cfd8dc":col}}>
-                    {isL?"...":g.rank===1?"#1":`#${g.rank}`}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Empty state */}
-        {guesses.length===0&&!won&&(
-          <div style={{textAlign:"center",padding:"36px 20px 20px"}}>
-            <PantanalScene/>
-            <div style={{fontSize:"17px",fontWeight:700,color:"#546e7a",marginBottom:"8px",marginTop:"18px"}}>
-              Comece a explorar o Pantanal!
-            </div>
-            <div style={{fontSize:"13px",color:"#90a4ae",lineHeight:1.7}}>
-              Digite qualquer palavra relacionada ao Pantanal.<br/>
-              Quanto menor o número, mais próxima da resposta!<br/>
-              <span style={{color:"#81c784"}}>#1 = acertou! &bull; #2000 = muito longe</span>
-            </div>
-            <div style={{display:"flex",justifyContent:"center",gap:"8px",marginTop:"16px",flexWrap:"wrap"}}>
-              {["capivara","onça","baía","pesca"].map(ex=>(
-                <button key={ex} onClick={()=>{setInput(ex);inputRef.current?.focus();}}
-                  style={{background:"#e8f5e9",color:"#2e7d32",border:"1px solid #a5d6a7",borderRadius:"20px",padding:"5px 14px",fontSize:"12px",fontWeight:600,cursor:"pointer"}}>
-                  {ex}?
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div style={{textAlign:"center",marginTop:"28px"}}>
-          <p style={{fontSize:"11px",color:"#b0bec5"}}>
-            🌿 Pantanal Contexto — Ferramenta educativa &bull; {WORD_BANK.length} palavras
-          </p>
+          ${revCat?`<div style="text-align:center"><div style="font-size:14px;font-weight:700;color:#f57f17">${swObj.category}</div><div style="font-size:10px;color:#90a4ae;letter-spacing:1px;text-transform:uppercase">Categoria</div></div>`:''}
+          ${hintUsed?`<div style="text-align:center;max-width:180px"><div style="font-size:12px;font-weight:600;color:#7b1fa2;font-style:italic">"${swObj.hint}"</div><div style="font-size:10px;color:#90a4ae;letter-spacing:1px;text-transform:uppercase">Dica</div></div>`:''}
         </div>
       </div>
+
+      ${won ? `
+      <div class="celebrate" style="background:linear-gradient(135deg,#1b5e20,#2e7d32);border-radius:14px;padding:18px;text-align:center;margin-bottom:14px;color:white">
+        <div style="font-size:30px;margin-bottom:6px">🏆</div>
+        <div style="font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:700;margin-bottom:4px">Você descobriu em ${guesses.length} tentativa${guesses.length!==1?'s':''}!</div>
+        <div style="font-size:12px;color:#a5d6a7;margin-bottom:14px">Categoria: ${swObj.category} &bull; ${swObj.hint}</div>
+        <button onclick="newGame()" style="background:#00695c;color:white;border:none;border-radius:8px;padding:10px 26px;font-size:14px;font-weight:700;cursor:pointer">🌿 Novo Jogo</button>
+      </div>` : ''}
+
+      <!-- Input -->
+      ${!won ? `
+      <div class="card" style="padding:16px;margin-bottom:14px">
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+          <input id="guess-input" class="input-guess" value="" placeholder="Digite uma palavra do Pantanal..."
+            ${loading?'disabled':''} onkeydown="if(event.key==='Enter')submitGuess()"
+            style="flex:1;padding:12px 16px;font-size:15px;border:2px solid #e0e0e0;border-radius:10px;font-family:inherit;background:${loading?'#fafafa':'white'};color:#263238"/>
+          <button class="btn-go" onclick="submitGuess()" ${loading?'disabled':''}
+            style="background:${loading?'#cfd8dc':'#2e7d32'};color:white;border:none;border-radius:10px;padding:12px 18px;font-size:18px;cursor:${loading?'not-allowed':'pointer'};font-weight:700;min-width:52px">
+            ${loading?'<span class="pulse">⏳</span>':'→'}
+          </button>
+        </div>
+        <div id="error-msg" style="color:#e53935;font-size:12px;padding:4px 6px;margin-bottom:8px;display:none"></div>
+        <div style="display:flex;gap:7px;flex-wrap:wrap">
+          ${!revCat?`<button class="chip" onclick="setRevCat()" style="background:#fff8e1;color:#f57f17;border:1px solid #ffe082;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600">🏷️ Ver Categoria</button>`:''}
+          ${!hintUsed?`<button class="chip" onclick="setHint()" style="background:#f3e5f5;color:#7b1fa2;border:1px solid #ce93d8;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600">💡 Ver Dica</button>`:''}
+          <button class="chip" onclick="newGame()" style="background:#e0f2f1;color:#00695c;border:1px solid #80cbc4;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600">🔄 Novo Jogo</button>
+        </div>
+      </div>` : ''}
+
+      <!-- Guesses -->
+      ${guesses.length>0 ? `
+      <div class="card" style="overflow:hidden">
+        <div style="padding:11px 16px;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center;background:#fafafa">
+          <span style="font-size:11px;font-weight:700;color:#546e7a;letter-spacing:1.5px;text-transform:uppercase">Suas Tentativas</span>
+          <span style="font-size:12px;color:#90a4ae;font-weight:600">${guesses.length} palavra${guesses.length!==1?'s':''}</span>
+        </div>
+        ${guessRows}
+      </div>` : ''}
+
+      <!-- Empty state -->
+      ${guesses.length===0&&!won ? `
+      <div style="text-align:center;padding:36px 20px 20px">
+        ${PantanalScene()}
+        <div style="font-size:17px;font-weight:700;color:#546e7a;margin-bottom:8px;margin-top:18px">Comece a explorar o Pantanal!</div>
+        <div style="font-size:13px;color:#90a4ae;line-height:1.7">
+          Digite qualquer palavra relacionada ao Pantanal.<br/>
+          Quanto menor o número, mais próxima da resposta!<br/>
+          <span style="color:#81c784">#1 = acertou! &bull; #2000 = muito longe</span>
+        </div>
+        <div style="display:flex;justify-content:center;gap:8px;margin-top:16px;flex-wrap:wrap">
+          ${["capivara","onça","baía","pesca"].map(ex=>`
+            <button class="chip" onclick="document.getElementById('guess-input').value='${ex}';document.getElementById('guess-input').focus()"
+              style="background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;border-radius:20px;padding:5px 14px;font-size:12px;font-weight:600">${ex}?</button>
+          `).join('')}
+        </div>
+      </div>` : ''}
+
+      <div style="text-align:center;margin-top:28px">
+        <p style="font-size:11px;color:#b0bec5">🌿 Pantanal Contexto — Ferramenta educativa &bull; ${WORD_BANK.length} palavras &bull; IA local, 100% gratuito</p>
+      </div>
     </div>
-  );
+  </div>`;
+
+  if(!won) {
+    const inp = document.getElementById('guess-input');
+    if(inp) inp.focus();
+  }
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+/* ─── GAME LOGIC ────────────────────────────────────────── */
+function showError(msg) {
+  const el = document.getElementById('error-msg');
+  if(!el) return;
+  el.textContent = '⚠️ ' + msg;
+  el.style.display = 'block';
+  setTimeout(()=>{ el.style.display='none'; }, 2500);
+}
+
+window.setRevCat = () => { revCat = true; render(); };
+window.setHint   = () => { hintUsed = true; render(); };
+
+window.newGame = async () => {
+  let n;
+  do { n = WORD_BANK[Math.floor(Math.random() * WORD_BANK.length)]; }
+  while(n.word === swObj.word);
+  swObj = n;
+  secretEmbed = await extractor(swObj.word, { pooling:'mean', normalize:true }).then(o=>Array.from(o.data));
+  guesses = []; won = false; loading = false; hintUsed = false; revCat = false;
+  render();
+};
+
+window.submitGuess = async () => {
+  const inp = document.getElementById('guess-input');
+  const raw = inp ? inp.value.trim() : '';
+  if(!raw || loading || won) return;
+  const n = norm(raw);
+  if(guesses.some(g => norm(g.word) === n)) {
+    showError('Você já tentou essa palavra!');
+    return;
+  }
+  loading = true;
+  const pid = Date.now();
+  guesses.unshift({ word: raw, rank: null, loading: true, pid });
+  render();
+
+  try {
+    if(n === norm(swObj.word)) {
+      guesses = guesses.filter(g=>g.pid!==pid);
+      guesses.unshift({ word: raw, rank: 1, done: true });
+      guesses.sort((a,b)=>(a.rank??9999)-(b.rank??9999));
+      won = true;
+    } else {
+      const guessEmbed = Array.from(
+        (await extractor(raw, { pooling:'mean', normalize:true })).data
+      );
+      const sim = cos_sim(secretEmbed, guessEmbed);
+      const rank = simToRank(sim);
+      guesses = guesses.filter(g=>g.pid!==pid);
+      guesses.push({ word: raw, rank, done: true });
+      guesses.sort((a,b)=>(a.rank??9999)-(b.rank??9999));
+    }
+  } catch(e) {
+    guesses = guesses.filter(g=>g.pid!==pid);
+    showError('Erro ao avaliar. Tente novamente.');
+  } finally {
+    loading = false;
+    render();
+  }
+};
+
+/* ─── BOOT ──────────────────────────────────────────────── */
+const prog  = document.getElementById('prog');
+const msg   = document.getElementById('load-msg');
+const ls    = document.getElementById('loading-screen');
+
+msg.textContent = 'Carregando modelo multilingual...';
+prog.style.width = '10%';
+
+extractor = await pipeline(
+  'feature-extraction',
+  'Xenova/paraphrase-multilingual-MiniLM-L12-v2',
+  {
+    progress_callback: info => {
+      if(info.status === 'progress' && info.total) {
+        const pct = Math.round((info.loaded / info.total) * 80) + 10;
+        prog.style.width = pct + '%';
+        const mb = (info.loaded / 1e6).toFixed(0);
+        msg.textContent = `Baixando modelo... ${mb} MB`;
+      }
+    }
+  }
+);
+
+prog.style.width = '95%';
+msg.textContent = 'Preparando o jogo...';
+
+// Pre-compute secret word embedding
+secretEmbed = Array.from(
+  (await extractor(swObj.word, { pooling:'mean', normalize:true })).data
+);
+
+prog.style.width = '100%';
+msg.textContent = 'Pronto!';
+await new Promise(r => setTimeout(r, 400));
+
+ls.classList.add('hidden');
+document.getElementById('root').style.display = 'block';
+setTimeout(() => ls.remove(), 700);
+render();
 </script>
 </body>
 </html>
