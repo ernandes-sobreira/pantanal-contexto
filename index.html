@@ -38,11 +38,12 @@ body{font-family:'Plus Jakarta Sans','Segoe UI',Arial,sans-serif;background:#f1f
   <h1 style="font-family:'Fraunces',Georgia,serif;font-weight:900;font-size:28px;color:#f9a825;letter-spacing:1.5px">ECOCONTEXTO</h1>
   <p style="color:#a5d6a7;font-size:13px;margin-top:6px">Plataforma de jogos educativos sobre ecologia brasileira</p>
   <div class="pb"><div class="pf" id="prog" style="width:0%"></div></div>
-  <p id="lmsg" style="color:#c8e6c9;font-size:13px">Carregando modelo...</p>
+  <p id="lmsg" style="color:#c8e6c9;font-size:13px">Carregando modelo de IA...</p>
   <p style="color:rgba(255,255,255,.4);font-size:11px;margin-top:20px;max-width:280px;line-height:1.7">Na primeira visita o modelo (~80 MB) e baixado e fica no cache do navegador.</p>
 </div>
 <div id="root" style="display:none"></div>
 <script type="module">
+import{pipeline,cos_sim}from'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js';
 
 /* ── GAME DEFS ── */
 const GD=[
@@ -234,74 +235,31 @@ const no=s=>s.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'
 const rc=r=>{if(!r&&r!==0)return'#cfd8dc';if(r===1)return'#00c853';if(r<=10)return'#1b5e20';if(r<=50)return'#2e7d32';if(r<=100)return'#388e3c';if(r<=200)return'#66bb6a';if(r<=350)return'#aed581';if(r<=500)return'#fdd835';if(r<=700)return'#ffa000';if(r<=1000)return'#f4511e';if(r<=1500)return'#c62828';return'#78909c';};
 const hl=r=>{if(!r&&r!==0)return'avaliando...';if(r===1)return'🎯 ACERTOU!';if(r<=10)return'🔥 Fervendo!';if(r<=50)return'♨️ Muito quente';if(r<=100)return'🌡️ Quente';if(r<=200)return'☀️ Morno';if(r<=400)return'🌤️ Tepido';if(r<=700)return'💧 Frio';if(r<=1200)return'❄️ Gelado';return'🌑 Distante';};
 const bw=r=>{if(!r)return 5;if(r===1)return 100;return Math.max(4,Math.round((1-Math.log(r)/Math.log(2001))*96+4));};
+const s2r=s=>{const v=Math.max(0,Math.min(1,(s+1)/2));if(v>=0.999)return 1;return Math.max(1,Math.min(2000,Math.round(2000*Math.pow(1-v,1.6))));};
 const pk=a=>a[Math.floor(Math.random()*a.length)];
 const pkO=(a,av)=>{let x;do{x=pk(a);}while(no(x.w||x.sp||x.secret)===no(av));return x;};
 const se=m=>{const e=document.getElementById(m);if(e){e.style.display='block';setTimeout(()=>e.style.display='none',2200);}};
 
-/* ── ENGINE: similaridade via API Anthropic ── */
-let EX=null;
-async function apiSim(word1,word2){
-  try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:20,
-        messages:[{role:'user',content:`Responda APENAS com um número decimal entre 0 e 1 representando a similaridade semântica entre estas duas palavras no contexto de ecologia/biologia brasileira. 0=totalmente diferente, 1=identico. Palavra1: "${word1}" Palavra2: "${word2}". Responda SOMENTE o número, sem texto adicional.`}]
-      })
-    });
-    const data=await res.json();
-    const txt=data.content?.find(b=>b.type==='text')?.text?.trim();
-    const v=parseFloat(txt);
-    return isNaN(v)?0.1:Math.max(0,Math.min(1,v));
-  }catch{return 0.1;}
-}
-function s2r(v){if(v>=0.999)return 1;return Math.max(1,Math.min(2000,Math.round(2000*Math.pow(1-v,1.6))));}
-async function cxR(secret,guess){const v=await apiSim(secret,guess);return s2r(v);}
-async function coR(w1,w2,guess){const[v1,v2]=await Promise.all([apiSim(w1,guess),apiSim(w2,guess)]);return s2r((v1+v2)/2);}
+/* ── ENGINE ── */
+let EX=null;const EC={};
+async function emb(t){if(EC[t])return EC[t];const o=await EX(t,{pooling:'mean',normalize:true});EC[t]=Array.from(o.data);return EC[t];}
+async function cxR(s,g){const[eS,eG]=await Promise.all([emb(s),emb(g)]);return s2r(cos_sim(eS,eG));}
+async function coR(w1,w2,g){const[e1,e2,eG]=await Promise.all([emb(w1),emb(w2),emb(g)]);return s2r((cos_sim(e1,eG)+cos_sim(e2,eG))/2);}
 
-/* ── DICA DIFÍCIL via API ── */
+/* ── DICA DIFÍCIL ── */
 async function gerarDicaDificil(palavra,categoria,dicaSimples){
   try{
-    const prompt=`Você é um especialista em ecologia brasileira. Crie UMA dica muito difícil e críptica para a palavra "${palavra}" (categoria: ${categoria}).
-
-REGRAS OBRIGATÓRIAS:
-- NÃO mencione a palavra diretamente, nem sinônimos óbvios
-- Use linguagem científica ou metafórica indireta
-- A dica deve ser curta: máximo 15 palavras
-- Deve ser desafiadora, quase enigmática
-- Não use a dica simples: "${dicaSimples}"
-- Responda APENAS a dica, sem aspas, sem explicação
-
-Exemplo de dica difícil para "capivara": "Prole gregária do maior roedor, venerada por crocodilianos oportunistas"
-Exemplo de dica difícil para "fotossíntese": "Equação de Saussure invertida sob fótons de 680 nm"
-
-Agora crie a dica para: ${palavra}`;
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:100,
-        messages:[{role:'user',content:prompt}]
-      })
-    });
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:80,messages:[{role:'user',content:`Crie UMA dica muito difícil e críptica (máximo 12 palavras) para a palavra "${palavra}" (categoria: ${categoria}) no contexto de ecologia brasileira. NÃO mencione a palavra nem sinônimos óbvios. Use linguagem científica indireta. Responda APENAS a dica, sem aspas.`}]})});
     const data=await res.json();
-    const texto=data.content?.find(b=>b.type==='text')?.text?.trim();
-    return texto||dicaSimples;
-  }catch(e){
-    return dicaSimples;
-  }
+    const txt=data.content?.find(b=>b.type==='text')?.text?.trim();
+    return txt||dicaSimples;
+  }catch{return dicaSimples;}
 }
-
 window.pedirDica=async()=>{
   if(S.hu||S.dicaCarregando)return;
   S.dicaCarregando=true;rCtx();
-  const sw=S.sw;
-  const dicaGerada=await gerarDicaDificil(sw.w,sw.cat,sw.h);
-  S.hu=true;S.dicaCarregando=false;S.dicaTexto=dicaGerada;
-  rCtx();
+  S.dicaTexto=await gerarDicaDificil(S.sw.w,S.sw.cat,S.sw.h);
+  S.hu=true;S.dicaCarregando=false;rCtx();
 };
 
 /* ── STATE ── */
@@ -395,8 +353,7 @@ function rHome(){
     <div style="max-width:640px;margin:0 auto;padding:20px 14px 48px">
       <p style="font-size:11px;font-weight:700;color:#546e7a;margin-bottom:16px;letter-spacing:1.5px;text-transform:uppercase">Escolha um jogo</p>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">${cards}</div>
-      <div style="text-align:center;margin-top:28px"><p style="font-size:11px;color:#b0bec5">🌿 EcoContexto — Ferramenta educativa UNEMAT • IA local • Transformers.js</p>
-      <p style="font-size:11px;color:#90a4ae;margin-top:6px">Produzido por Ernandes Sobreira, professor da UNEMAT para fins educacionais.</p></div>
+      <div style="text-align:center;margin-top:28px"><p style="font-size:11px;color:#b0bec5">🌿 EcoContexto — Ferramenta educativa UNEMAT • IA local • Transformers.js</p><p style="font-size:11px;color:#90a4ae;margin-top:4px">Produzido por Ernandes Sobreira, professor da UNEMAT para fins educacionais.</p></div>
     </div>
   </div>`;
 }
@@ -420,8 +377,8 @@ function rCtx(){
         <div style="display:flex;justify-content:center;gap:24px;margin-top:14px;flex-wrap:wrap">
           <div style="text-align:center"><div style="font-size:22px;font-weight:800;color:#2e7d32;font-family:'Fraunces',Georgia,serif">${S.gs.length}</div><div style="font-size:10px;color:#90a4ae;text-transform:uppercase">Tentativas</div></div>
           ${S.rc2?`<div style="text-align:center"><div style="font-size:14px;font-weight:700;color:#f57f17">${sw.cat}</div><div style="font-size:10px;color:#90a4ae;text-transform:uppercase">Categoria</div></div>`:''}
-          ${S.hu?`<div style="text-align:center;max-width:200px"><div style="font-size:12px;font-weight:600;color:#7b1fa2;font-style:italic">"${S.dicaTexto||sw.h}"</div><div style="font-size:10px;color:#90a4ae;text-transform:uppercase">Dica</div></div>`:''}
-          ${S.dicaCarregando?`<div style="text-align:center;max-width:200px"><div style="font-size:12px;color:#7b1fa2;font-weight:600"><span class="pu">⏳ Gerando dica...</span></div></div>`:''}
+          ${S.hu?`<div style="text-align:center;max-width:200px"><div style="font-size:12px;font-weight:600;color:#7b1fa2;font-style:italic">"${S.dicaTexto}"</div><div style="font-size:10px;color:#90a4ae;text-transform:uppercase">Dica</div></div>`:''}
+          ${S.dicaCarregando?`<div style="text-align:center"><div style="font-size:12px;color:#7b1fa2"><span class="pu">⏳ gerando dica...</span></div></div>`:''}
         </div>
       </div>
       ${S.won?`<div class="ce" style="background:linear-gradient(135deg,#1b5e20,#2e7d32);border-radius:14px;padding:18px;text-align:center;margin-bottom:14px;color:white">
@@ -448,7 +405,9 @@ function rCtx(){
           <span style="font-size:12px;color:#90a4ae;font-weight:600">${S.gs.length} palavra${S.gs.length!==1?'s':''}</span>
         </div>${rRows(S.gs,'#1b5e20')}</div>`:''}
       ${S.gs.length===0&&!S.won?`<div style="text-align:center;padding:32px 20px 16px">${SVG}<div style="font-size:16px;font-weight:700;color:#546e7a;margin:16px 0 8px">Comece a explorar!</div><div style="font-size:13px;color:#90a4ae;line-height:1.7">Digite palavras e descubra a secreta.<br/><span style="color:#81c784">#1 = acertou! • #2000 = muito longe</span></div></div>`:''}
-      <div style="text-align:center;padding:20px 0 8px"><p style="font-size:11px;color:#b0bec5">Produzido por Ernandes Sobreira, professor da UNEMAT para fins educacionais.</p></div>
+    </div>
+  </div>`;
+  const i=document.getElementById('ci');if(i)i.focus();
 }
 
 /* ── RENDER QUEM SOU EU ── */
@@ -609,9 +568,20 @@ window.cxg=async()=>{
 window.cxng=async()=>{S.co=pkO(CX,S.co.secret);S.cg=[];S.cw=false;S.cl2=false;S.cld=false;rCX();};
 
 /* ── BOOT ── */
-const ls=document.getElementById('ls');
+const prog=document.getElementById('prog'),lmsg=document.getElementById('lmsg'),ls=document.getElementById('ls');
+lmsg.textContent='Carregando modelo multilingual...';prog.style.width='8%';
+EX=await pipeline('feature-extraction','Xenova/paraphrase-multilingual-MiniLM-L12-v2',{
+  progress_callback:info=>{
+    if(info.status==='progress'&&info.total){
+      prog.style.width=Math.round((info.loaded/info.total)*85+8)+'%';
+      lmsg.textContent=`Baixando... ${(info.loaded/1e6).toFixed(0)} MB`;
+    }
+  }
+});
+prog.style.width='100%';lmsg.textContent='Pronto! 🌿';
+await new Promise(r=>setTimeout(r,500));
 ls.classList.add('hidden');document.getElementById('root').style.display='block';
-setTimeout(()=>ls.remove(),300);
+setTimeout(()=>ls.remove(),700);
 rHome();
 </script>
 </body>
