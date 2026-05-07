@@ -246,10 +246,53 @@ async function emb(t){if(EC[t])return EC[t];const o=await EX(t,{pooling:'mean',n
 async function cxR(s,g){const[eS,eG]=await Promise.all([emb(s),emb(g)]);return s2r(cos_sim(eS,eG));}
 async function coR(w1,w2,g){const[e1,e2,eG]=await Promise.all([emb(w1),emb(w2),emb(g)]);return s2r((cos_sim(e1,eG)+cos_sim(e2,eG))/2);}
 
+/* ── DICA DIFÍCIL via API ── */
+async function gerarDicaDificil(palavra,categoria,dicaSimples){
+  try{
+    const prompt=`Você é um especialista em ecologia brasileira. Crie UMA dica muito difícil e críptica para a palavra "${palavra}" (categoria: ${categoria}).
+
+REGRAS OBRIGATÓRIAS:
+- NÃO mencione a palavra diretamente, nem sinônimos óbvios
+- Use linguagem científica ou metafórica indireta
+- A dica deve ser curta: máximo 15 palavras
+- Deve ser desafiadora, quase enigmática
+- Não use a dica simples: "${dicaSimples}"
+- Responda APENAS a dica, sem aspas, sem explicação
+
+Exemplo de dica difícil para "capivara": "Prole gregária do maior roedor, venerada por crocodilianos oportunistas"
+Exemplo de dica difícil para "fotossíntese": "Equação de Saussure invertida sob fótons de 680 nm"
+
+Agora crie a dica para: ${palavra}`;
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:100,
+        messages:[{role:'user',content:prompt}]
+      })
+    });
+    const data=await res.json();
+    const texto=data.content?.find(b=>b.type==='text')?.text?.trim();
+    return texto||dicaSimples;
+  }catch(e){
+    return dicaSimples;
+  }
+}
+
+window.pedirDica=async()=>{
+  if(S.hu||S.dicaCarregando)return;
+  S.dicaCarregando=true;rCtx();
+  const sw=S.sw;
+  const dicaGerada=await gerarDicaDificil(sw.w,sw.cat,sw.h);
+  S.hu=true;S.dicaCarregando=false;S.dicaTexto=dicaGerada;
+  rCtx();
+};
+
 /* ── STATE ── */
 let S={
   sc:'home',gid:null,
-  sw:null,gs:[],won:false,ld:false,hu:false,rc2:false,
+  sw:null,gs:[],won:false,ld:false,hu:false,rc2:false,dicaTexto:'',dicaCarregando:false,
   qo:null,qcl:1,qa:[],qw:false,
   co:null,cg:[],cw:false,cl2:false,cld:false,
 };
@@ -337,7 +380,8 @@ function rHome(){
     <div style="max-width:640px;margin:0 auto;padding:20px 14px 48px">
       <p style="font-size:11px;font-weight:700;color:#546e7a;margin-bottom:16px;letter-spacing:1.5px;text-transform:uppercase">Escolha um jogo</p>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">${cards}</div>
-      <div style="text-align:center;margin-top:28px"><p style="font-size:11px;color:#b0bec5">🌿 EcoContexto — Ferramenta educativa UNEMAT • IA local • Transformers.js</p></div>
+      <div style="text-align:center;margin-top:28px"><p style="font-size:11px;color:#b0bec5">🌿 EcoContexto — Ferramenta educativa UNEMAT • IA local • Transformers.js</p>
+      <p style="font-size:11px;color:#90a4ae;margin-top:6px">Produzido por Ernandes Sobreira, professor da UNEMAT para fins educacionais.</p></div>
     </div>
   </div>`;
 }
@@ -361,7 +405,8 @@ function rCtx(){
         <div style="display:flex;justify-content:center;gap:24px;margin-top:14px;flex-wrap:wrap">
           <div style="text-align:center"><div style="font-size:22px;font-weight:800;color:#2e7d32;font-family:'Fraunces',Georgia,serif">${S.gs.length}</div><div style="font-size:10px;color:#90a4ae;text-transform:uppercase">Tentativas</div></div>
           ${S.rc2?`<div style="text-align:center"><div style="font-size:14px;font-weight:700;color:#f57f17">${sw.cat}</div><div style="font-size:10px;color:#90a4ae;text-transform:uppercase">Categoria</div></div>`:''}
-          ${S.hu?`<div style="text-align:center;max-width:180px"><div style="font-size:12px;font-weight:600;color:#7b1fa2;font-style:italic">"${sw.h}"</div><div style="font-size:10px;color:#90a4ae;text-transform:uppercase">Dica</div></div>`:''}
+          ${S.hu?`<div style="text-align:center;max-width:200px"><div style="font-size:12px;font-weight:600;color:#7b1fa2;font-style:italic">"${S.dicaTexto||sw.h}"</div><div style="font-size:10px;color:#90a4ae;text-transform:uppercase">Dica</div></div>`:''}
+          ${S.dicaCarregando?`<div style="text-align:center;max-width:200px"><div style="font-size:12px;color:#7b1fa2;font-weight:600"><span class="pu">⏳ Gerando dica...</span></div></div>`:''}
         </div>
       </div>
       ${S.won?`<div class="ce" style="background:linear-gradient(135deg,#1b5e20,#2e7d32);border-radius:14px;padding:18px;text-align:center;margin-bottom:14px;color:white">
@@ -378,7 +423,7 @@ function rCtx(){
         <div id="ce" style="color:#e53935;font-size:12px;padding:4px 6px;margin-bottom:8px;display:none"></div>
         <div style="display:flex;gap:7px;flex-wrap:wrap">
           ${!S.rc2?`<button class="ch" onclick="S.rc2=true;rCtx()" style="background:#fff8e1;color:#f57f17;border:1px solid #ffe082;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600">🏷️ Categoria</button>`:''}
-          ${!S.hu?`<button class="ch" onclick="S.hu=true;rCtx()" style="background:#f3e5f5;color:#7b1fa2;border:1px solid #ce93d8;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600">💡 Dica</button>`:''}
+          ${(!S.hu&&!S.dicaCarregando)?`<button class="ch" onclick="pedirDica()" style="background:#f3e5f5;color:#7b1fa2;border:1px solid #ce93d8;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600">💡 Dica</button>`:''}
           <button class="ch" onclick="cng()" style="background:#e0f2f1;color:#00695c;border:1px solid #80cbc4;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600">🔄 Novo</button>
         </div>
       </div>`:''}
@@ -388,9 +433,7 @@ function rCtx(){
           <span style="font-size:12px;color:#90a4ae;font-weight:600">${S.gs.length} palavra${S.gs.length!==1?'s':''}</span>
         </div>${rRows(S.gs,'#1b5e20')}</div>`:''}
       ${S.gs.length===0&&!S.won?`<div style="text-align:center;padding:32px 20px 16px">${SVG}<div style="font-size:16px;font-weight:700;color:#546e7a;margin:16px 0 8px">Comece a explorar!</div><div style="font-size:13px;color:#90a4ae;line-height:1.7">Digite palavras e descubra a secreta.<br/><span style="color:#81c784">#1 = acertou! • #2000 = muito longe</span></div></div>`:''}
-    </div>
-  </div>`;
-  const i=document.getElementById('ci');if(i)i.focus();
+      <div style="text-align:center;padding:20px 0 8px"><p style="font-size:11px;color:#b0bec5">Produzido por Ernandes Sobreira, professor da UNEMAT para fins educacionais.</p></div>
 }
 
 /* ── RENDER QUEM SOU EU ── */
@@ -499,7 +542,7 @@ window.gh=()=>{S.sc='home';rHome();};
 window.sg=async(id)=>{
   S.gid=id;const g=GD.find(x=>x.id===id);
   if(g.type==='ctx'){
-    S.sc='ctx';S.sw=pk(WB[id]);S.gs=[];S.won=false;S.ld=false;S.hu=false;S.rc2=false;rCtx();
+    S.sc='ctx';S.sw=pk(WB[id]);S.gs=[];S.won=false;S.ld=false;S.hu=false;S.rc2=false;S.dicaTexto='';S.dicaCarregando=false;rCtx();
   }else if(id==='quem'){
     S.sc='qse';S.qo=pk(QSE);S.qcl=1;S.qa=[];S.qw=false;rQSE();
   }else if(id==='conexao'){
@@ -519,7 +562,7 @@ window.cg=async()=>{
   catch{S.gs=S.gs.filter(g=>g.pid!==pid);}
   S.ld=false;rCtx();
 };
-window.cng=async()=>{S.sw=pkO(WB[S.gid],S.sw.w);S.gs=[];S.won=false;S.ld=false;S.hu=false;S.rc2=false;rCtx();};
+window.cng=async()=>{S.sw=pkO(WB[S.gid],S.sw.w);S.gs=[];S.won=false;S.ld=false;S.hu=false;S.rc2=false;S.dicaTexto='';S.dicaCarregando=false;rCtx();};
 
 window.qg=()=>{
   const inp=document.getElementById('qi'),raw=inp?inp.value.trim():'';
