@@ -376,7 +376,7 @@ function rCtx(){
         ${S.won?`<div class="ce" style="font-family:'Fraunces',Georgia,serif;font-weight:900;font-size:clamp(22px,5vw,36px);color:#2e7d32;letter-spacing:3px">${sw.w.toUpperCase()} 🎉</div>`:`<div style="display:flex;justify-content:center;flex-wrap:wrap;gap:2px">${boxes}</div>`}
         <div style="display:flex;justify-content:center;gap:24px;margin-top:14px;flex-wrap:wrap">
           <div style="text-align:center"><div style="font-size:22px;font-weight:800;color:#2e7d32;font-family:'Fraunces',Georgia,serif">${S.gs.length}</div><div style="font-size:10px;color:#90a4ae;text-transform:uppercase">Tentativas</div></div>
-          ${S.rc2?`<div style="text-align:center"><div style="font-size:14px;font-weight:700;color:#f57f17">${sw.cat}</div><div style="font-size:10px;color:#90a4ae;text-transform:uppercase">Categoria</div></div>`:''}
+          <div style="text-align:center"><div style="font-size:14px;font-weight:700;color:#f57f17">${sw.cat}</div><div style="font-size:10px;color:#90a4ae;text-transform:uppercase">Categoria</div></div>
           ${S.hu?`<div style="text-align:center;max-width:200px"><div style="font-size:12px;font-weight:600;color:#7b1fa2;font-style:italic">"${S.dicaTexto}"</div><div style="font-size:10px;color:#90a4ae;text-transform:uppercase">Dica</div></div>`:''}
           ${S.dicaCarregando?`<div style="text-align:center"><div style="font-size:12px;color:#7b1fa2"><span class="pu">⏳ gerando dica...</span></div></div>`:''}
         </div>
@@ -394,7 +394,6 @@ function rCtx(){
         </div>
         <div id="ce" style="color:#e53935;font-size:12px;padding:4px 6px;margin-bottom:8px;display:none"></div>
         <div style="display:flex;gap:7px;flex-wrap:wrap">
-          ${!S.rc2?`<button class="ch" onclick="S.rc2=true;rCtx()" style="background:#fff8e1;color:#f57f17;border:1px solid #ffe082;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600">🏷️ Categoria</button>`:''}
           ${(!S.hu&&!S.dicaCarregando)?`<button class="ch" onclick="pedirDica()" style="background:#f3e5f5;color:#7b1fa2;border:1px solid #ce93d8;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600">💡 Dica</button>`:''}
           <button class="ch" onclick="cng()" style="background:#e0f2f1;color:#00695c;border:1px solid #80cbc4;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600">🔄 Novo</button>
         </div>
