@@ -43,7 +43,6 @@ body{font-family:'Plus Jakarta Sans','Segoe UI',Arial,sans-serif;background:#f1f
 </div>
 <div id="root" style="display:none"></div>
 <script type="module">
-import{pipeline,cos_sim}from'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js';
 
 /* ── GAME DEFS ── */
 const GD=[
@@ -235,16 +234,32 @@ const no=s=>s.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'
 const rc=r=>{if(!r&&r!==0)return'#cfd8dc';if(r===1)return'#00c853';if(r<=10)return'#1b5e20';if(r<=50)return'#2e7d32';if(r<=100)return'#388e3c';if(r<=200)return'#66bb6a';if(r<=350)return'#aed581';if(r<=500)return'#fdd835';if(r<=700)return'#ffa000';if(r<=1000)return'#f4511e';if(r<=1500)return'#c62828';return'#78909c';};
 const hl=r=>{if(!r&&r!==0)return'avaliando...';if(r===1)return'🎯 ACERTOU!';if(r<=10)return'🔥 Fervendo!';if(r<=50)return'♨️ Muito quente';if(r<=100)return'🌡️ Quente';if(r<=200)return'☀️ Morno';if(r<=400)return'🌤️ Tepido';if(r<=700)return'💧 Frio';if(r<=1200)return'❄️ Gelado';return'🌑 Distante';};
 const bw=r=>{if(!r)return 5;if(r===1)return 100;return Math.max(4,Math.round((1-Math.log(r)/Math.log(2001))*96+4));};
-const s2r=s=>{const v=Math.max(0,Math.min(1,(s+1)/2));if(v>=0.999)return 1;return Math.max(1,Math.min(2000,Math.round(2000*Math.pow(1-v,1.6))));};
 const pk=a=>a[Math.floor(Math.random()*a.length)];
 const pkO=(a,av)=>{let x;do{x=pk(a);}while(no(x.w||x.sp||x.secret)===no(av));return x;};
 const se=m=>{const e=document.getElementById(m);if(e){e.style.display='block';setTimeout(()=>e.style.display='none',2200);}};
 
-/* ── ENGINE ── */
-let EX=null;const EC={};
-async function emb(t){if(EC[t])return EC[t];const o=await EX(t,{pooling:'mean',normalize:true});EC[t]=Array.from(o.data);return EC[t];}
-async function cxR(s,g){const[eS,eG]=await Promise.all([emb(s),emb(g)]);return s2r(cos_sim(eS,eG));}
-async function coR(w1,w2,g){const[e1,e2,eG]=await Promise.all([emb(w1),emb(w2),emb(g)]);return s2r((cos_sim(e1,eG)+cos_sim(e2,eG))/2);}
+/* ── ENGINE: similaridade via API Anthropic ── */
+let EX=null;
+async function apiSim(word1,word2){
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:20,
+        messages:[{role:'user',content:`Responda APENAS com um número decimal entre 0 e 1 representando a similaridade semântica entre estas duas palavras no contexto de ecologia/biologia brasileira. 0=totalmente diferente, 1=identico. Palavra1: "${word1}" Palavra2: "${word2}". Responda SOMENTE o número, sem texto adicional.`}]
+      })
+    });
+    const data=await res.json();
+    const txt=data.content?.find(b=>b.type==='text')?.text?.trim();
+    const v=parseFloat(txt);
+    return isNaN(v)?0.1:Math.max(0,Math.min(1,v));
+  }catch{return 0.1;}
+}
+function s2r(v){if(v>=0.999)return 1;return Math.max(1,Math.min(2000,Math.round(2000*Math.pow(1-v,1.6))));}
+async function cxR(secret,guess){const v=await apiSim(secret,guess);return s2r(v);}
+async function coR(w1,w2,guess){const[v1,v2]=await Promise.all([apiSim(w1,guess),apiSim(w2,guess)]);return s2r((v1+v2)/2);}
 
 /* ── DICA DIFÍCIL via API ── */
 async function gerarDicaDificil(palavra,categoria,dicaSimples){
@@ -594,20 +609,9 @@ window.cxg=async()=>{
 window.cxng=async()=>{S.co=pkO(CX,S.co.secret);S.cg=[];S.cw=false;S.cl2=false;S.cld=false;rCX();};
 
 /* ── BOOT ── */
-const prog=document.getElementById('prog'),lmsg=document.getElementById('lmsg'),ls=document.getElementById('ls');
-lmsg.textContent='Carregando modelo...';prog.style.width='8%';
-EX=await pipeline('feature-extraction','Xenova/paraphrase-multilingual-MiniLM-L12-v2',{
-  progress_callback:info=>{
-    if(info.status==='progress'&&info.total){
-      prog.style.width=Math.round((info.loaded/info.total)*85+8)+'%';
-      lmsg.textContent=`Baixando... ${(info.loaded/1e6).toFixed(0)} MB`;
-    }
-  }
-});
-prog.style.width='100%';lmsg.textContent='Pronto! 🌿';
-await new Promise(r=>setTimeout(r,500));
+const ls=document.getElementById('ls');
 ls.classList.add('hidden');document.getElementById('root').style.display='block';
-setTimeout(()=>ls.remove(),700);
+setTimeout(()=>ls.remove(),300);
 rHome();
 </script>
 </body>
