@@ -490,7 +490,7 @@ function rCX(){
         </div>
         <div id="cxe" style="color:#e53935;font-size:12px;padding:4px 6px;margin-bottom:8px;display:none"></div>
         <div style="display:flex;gap:7px;flex-wrap:wrap">
-          <button class="ch" onclick="S.cl2=true;rCX()" style="background:#fff8e1;color:#e65100;border:1px solid #ffe082;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600">👁️ Revelar resposta</button>
+          <button class="ch" onclick="revelarCX()" style="background:#fff8e1;color:#e65100;border:1px solid #ffe082;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600">👁️ Revelar resposta</button>
           <button class="ch" onclick="cxng()" style="background:#fbe9e7;color:#bf360c;border:1px solid #ffccbc;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600">🔄 Nova Conexao</button>
         </div>
       </div>`:''}
@@ -511,6 +511,7 @@ function rCX(){
 
 /* ── ACOES ── */
 window.gh=()=>{S.sc='home';rHome();};
+window.revelarCX=()=>{S.cl2=true;rCX();};
 
 window.sg=async(id)=>{
   S.gid=id;const g=GD.find(x=>x.id===id);
