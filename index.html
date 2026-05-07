@@ -38,7 +38,7 @@ body{font-family:'Plus Jakarta Sans','Segoe UI',Arial,sans-serif;background:#f1f
   <h1 style="font-family:'Fraunces',Georgia,serif;font-weight:900;font-size:28px;color:#f9a825;letter-spacing:1.5px">ECOCONTEXTO</h1>
   <p style="color:#a5d6a7;font-size:13px;margin-top:6px">Plataforma de jogos educativos sobre ecologia brasileira</p>
   <div class="pb"><div class="pf" id="prog" style="width:0%"></div></div>
-  <p id="lmsg" style="color:#c8e6c9;font-size:13px">Carregando modelo de IA...</p>
+  <p id="lmsg" style="color:#c8e6c9;font-size:13px">Carregando modelo...</p>
   <p style="color:rgba(255,255,255,.4);font-size:11px;margin-top:20px;max-width:280px;line-height:1.7">Na primeira visita o modelo (~80 MB) e baixado e fica no cache do navegador.</p>
 </div>
 <div id="root" style="display:none"></div>
@@ -595,7 +595,7 @@ window.cxng=async()=>{S.co=pkO(CX,S.co.secret);S.cg=[];S.cw=false;S.cl2=false;S.
 
 /* ── BOOT ── */
 const prog=document.getElementById('prog'),lmsg=document.getElementById('lmsg'),ls=document.getElementById('ls');
-lmsg.textContent='Carregando modelo multilingual...';prog.style.width='8%';
+lmsg.textContent='Carregando modelo...';prog.style.width='8%';
 EX=await pipeline('feature-extraction','Xenova/paraphrase-multilingual-MiniLM-L12-v2',{
   progress_callback:info=>{
     if(info.status==='progress'&&info.total){
